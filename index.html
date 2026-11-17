@@ -115,6 +115,14 @@ pdf.setLineWidth(.26);pdf.setDrawColor(0);
 if(i&&inTab(a))pdf.line(14,12,196,12);
 if(i<cuts.length-2&&inTab(b))pdf.line(14,12+h/K,196,12+h/K)}
 host.remove();return pdf.output("blob")}
+async function deliver(b,n){const m=$("msg");
+const f=new File([b],n,{type:"application/pdf"});
+if(/Android|iPhone|iPad|Mobi/i.test(navigator.userAgent)&&navigator.canShare&&navigator.canShare({files:[f]})){
+try{await navigator.share({files:[f],title:n});m.textContent="Done.";return}
+catch(e){if(e.name=="AbortError"){m.textContent="";return}
+m.innerHTML='<button type="button" id="sv" style="margin-top:6px">Tap to save PDF</button>';
+$("sv").onclick=async()=>{try{await navigator.share({files:[f],title:n})}catch(e){if(e.name!="AbortError")saveBlob(b,n)}};return}}
+saveBlob(b,n);m.textContent="Done."}
 function saveBlob(b,n){const u=URL.createObjectURL(b),a=document.createElement("a");a.href=u;a.download=n;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),30000)}
 $("pdf").onclick=async()=>{const m=$("msg");m.textContent="";
 let dl=null;try{dl=await claude.use("downloads")}catch(e){}
@@ -122,7 +130,7 @@ let dl=null;try{dl=await claude.use("downloads")}catch(e){}
 $("pdf").disabled=true;m.textContent="Generating…";
 try{const blob=await makePdf();
 const nm=("Quotation-"+$("no").value+"-"+$("to").value).replace(/[^\w-]+/g,"_")+".pdf";
-if(dl)await dl.save({filename:nm,data:blob});else saveBlob(blob,nm);m.textContent="Done."}
+if(dl){await dl.save({filename:nm,data:blob});m.textContent="Done."}else await deliver(blob,nm)}
 catch(e){m.textContent=e&&e.code=="declined"?"Save cancelled.":"Could not create the PDF."}
 $("pdf").disabled=false};
 $("date").value||($("date").value=new Date().toISOString().slice(0,10));
