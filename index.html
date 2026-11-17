@@ -93,7 +93,9 @@ $("items").addEventListener("click",e=>{if(e.target.dataset.del!==undefined){ite
 $("add").onclick=()=>{items.push({title:"",scope:"",unit:"",price:0});build()};
 ["no","date","to"].forEach(id=>$(id).addEventListener("input",preview));
 async function makePdf(){
-const el=$("sheet"),S=2,cv=await html2canvas(el,{scale:S,backgroundColor:"#fff",useCORS:true});
+const host=document.createElement("div");host.style.cssText="position:absolute;left:0;top:0;width:688px;background:#fff;z-index:-1";
+const el=$("sheet").cloneNode(true);host.appendChild(el);document.body.appendChild(host);
+const S=2;let cv;try{cv=await html2canvas(el,{scale:S,backgroundColor:"#fff",useCORS:true,windowWidth:1280})}catch(e){host.remove();throw e}
 const pdf=new window.jspdf.jsPDF({unit:"mm",format:"a4"});
 const MW=182,MH=273,K=el.offsetWidth/MW,PH=MH*K,H=cv.height/S,T=el.getBoundingClientRect().top;
 const rel=n=>n.getBoundingClientRect().bottom-T;
@@ -112,14 +114,15 @@ pdf.addImage(sl.toDataURL("image/jpeg",.95),"JPEG",14,12,MW,h/K);
 pdf.setLineWidth(.26);pdf.setDrawColor(0);
 if(i&&inTab(a))pdf.line(14,12,196,12);
 if(i<cuts.length-2&&inTab(b))pdf.line(14,12+h/K,196,12+h/K)}
-return pdf.output("blob")}
+host.remove();return pdf.output("blob")}
+function saveBlob(b,n){const u=URL.createObjectURL(b),a=document.createElement("a");a.href=u;a.download=n;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),30000)}
 $("pdf").onclick=async()=>{const m=$("msg");m.textContent="";
 let dl=null;try{dl=await claude.use("downloads")}catch(e){}
-if(!dl){window.print();return}
+
 $("pdf").disabled=true;m.textContent="Generating…";
 try{const blob=await makePdf();
 const nm=("Quotation-"+$("no").value+"-"+$("to").value).replace(/[^\w-]+/g,"_")+".pdf";
-await dl.save({filename:nm,data:blob});m.textContent="Done."}
+if(dl)await dl.save({filename:nm,data:blob});else saveBlob(blob,nm);m.textContent="Done."}
 catch(e){m.textContent=e&&e.code=="declined"?"Save cancelled.":"Could not create the PDF."}
 $("pdf").disabled=false};
 $("date").value||($("date").value=new Date().toISOString().slice(0,10));
